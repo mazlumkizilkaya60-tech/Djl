@@ -88,20 +88,79 @@
     });
   }
 
+  
   function attach(){
-    var isM3u8 = (cfg.rawUrl || '').toLowerCase().indexOf('.m3u8') !== -1;
+    hideError();
+
+    if(hls){
+      try{ hls.destroy(); }catch(e){}
+      hls = null;
+    }
+
+    var raw = cfg.rawUrl || '';
+    var proxy = cfg.playbackUrl || '';
+    var lower = raw.toLowerCase();
+    var isM3u8 = lower.indexOf('.m3u8') !== -1;
+    var isFile = /\.(mp4|mkv|ts|m4v|mov)(\?|$)/i.test(raw);
+
+    // Render üzerinde büyük dosyalarda proxy sorun çıkarabildiği için
+    // dosya tabanlı streamlerde direct-first gidiyoruz.
+    var source = raw || proxy;
+    if(isM3u8){
+      source = proxy || raw;
+    }else if(isFile){
+      source = raw || proxy;
+    }else{
+      source = raw || proxy;
+    }
+
+    setStatus('Kaynak bağlanıyor');
+
     if(isM3u8 && window.Hls && Hls.isSupported()){
-      hls = new Hls();
-      hls.loadSource(cfg.rawUrl);
+      hls = new Hls({
+        enableWorker: true,
+        lowLatencyMode: false,
+        backBufferLength: 90
+      });
+      hls.loadSource(source);
       hls.attachMedia(video);
-      hls.on(Hls.Events.MANIFEST_PARSED, function(){ restoreProgress(); play(); setStatus('HLS hazır'); });
-      hls.on(Hls.Events.ERROR, function(_, data){ if(data && data.fatal) showError('HLS hata: ' + (data.details || 'bilinmeyen')); });
+      hls.on(Hls.Events.MANIFEST_PARSED, function(){
+        restoreProgress();
+        play();
+        setStatus('HLS hazır');
+      });
+      hls.on(Hls.Events.ERROR, function(_, data){
+        if(data && data.fatal){
+          // HLS proxy bozarsa direct dene
+          if(source !== raw && raw){
+            try{ hls.destroy(); }catch(e){}
+            hls = null;
+            video.src = raw;
+            video.load();
+            video.addEventListener('loadedmetadata', function onMeta(){
+              video.removeEventListener('loadedmetadata', onMeta);
+              restoreProgress();
+              play();
+              setStatus('Direct kaynak hazır');
+            }, { once:true });
+            return;
+          }
+          showError('HLS hata: ' + (data.details || 'bilinmeyen'));
+        }
+      });
       return;
     }
-    video.src = cfg.playbackUrl || cfg.rawUrl;
+
+    video.src = source;
     video.load();
-    video.addEventListener('loadedmetadata', function(){ restoreProgress(); play(); setStatus('Kaynak hazır'); }, { once:true });
+    video.addEventListener('loadedmetadata', function onMeta(){
+      video.removeEventListener('loadedmetadata', onMeta);
+      restoreProgress();
+      play();
+      setStatus(source === raw ? 'Direct kaynak hazır' : 'Proxy kaynak hazır');
+    }, { once:true });
   }
+
 
   playPause.addEventListener('click', function(){
     if(video.paused) play(); else { video.pause(); updateButtons(); setStatus('Duraklatıldı'); shell.classList.remove('hide-player-ui'); }
@@ -113,8 +172,10 @@
   fsBtn.addEventListener('click', function(){ if(document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen(); hideUiLater(); });
   playerBack.addEventListener('click', function(){ window.history.back(); });
   bigPlayBtn.addEventListener('click', function(){ bigPlay.hidden = true; play(); });
-  retryBtn.addEventListener('click', function(){ location.reload(); });
+  if(nextEpisodeBtn){ nextEpisodeBtn.addEventListener('click', function(){ if(cfg.nextEpisodeUrl) window.location.href = cfg.nextEpisodeUrl; }); }
+  retryBtn.addEventListener('click', function(){ hideError(); attach(); });
   copyUrlBtn.addEventListener('click', function(){ navigator.clipboard.writeText(cfg.rawUrl || cfg.playbackUrl || ''); setStatus('URL kopyalandı'); });
+  reconnectBtn.addEventListener('click', function(){ hideError(); attach(); });
 
   playerTimeline.addEventListener('click', function(e){
     var rect = playerTimeline.getBoundingClientRect();
@@ -138,7 +199,31 @@
   });
   video.addEventListener('playing', function(){ bigPlay.hidden = true; updateButtons(); hideUiLater(); });
   video.addEventListener('pause', function(){ updateButtons(); if(video.currentTime > 0 && !video.ended) bigPlay.hidden = false; });
-  video.addEventListener('error', function(){ showError('Akış bağlantısı koptu. Tekrar dene veya sonraki bölüme geç.'); });
+  video.addEventListener('error', function(){
+    var raw = cfg.rawUrl || '';
+    var proxy = cfg.playbackUrl || '';
+    var current = video.currentSrc || video.src || '';
+    var canFallbackToRaw = raw && current !== raw;
+    var canFallbackToProxy = proxy && current !== proxy;
+
+    if(canFallbackToRaw){
+      setStatus('Direct kaynağa geçiliyor');
+      video.src = raw;
+      video.load();
+      play();
+      return;
+    }
+
+    if(canFallbackToProxy){
+      setStatus('Proxy kaynağa geçiliyor');
+      video.src = proxy;
+      video.load();
+      play();
+      return;
+    }
+
+    showError('Akış bağlantısı koptu. Tekrar dene veya sonraki bölüme geç.');
+  });
 
   ['mousemove','keydown','click','touchstart'].forEach(function(evt){ document.addEventListener(evt, hideUiLater, true); });
   setInterval(function(){ if(!video.paused) saveProgress(); }, 5000);
@@ -170,3 +255,4 @@
     updateButtons();
   });
 })();
+              
