@@ -326,33 +326,11 @@ def rewrite_m3u8(body: str, source_url: str) -> str:
     return '\n'.join(lines)
 
 
-
 @app.route('/proxy')
 def proxy():
-    import requests
-    from flask import Response, request, stream_with_context
-
-    url = request.args.get('url')
-    headers = {}
-    if 'Range' in request.headers:
-        headers['Range'] = request.headers['Range']
-
-    r = requests.get(url, headers=headers, stream=True, timeout=30)
-
-    def generate():
-        try:
-            for chunk in r.iter_content(chunk_size=512*1024):
-                if chunk:
-                    yield chunk
-        except Exception:
-            pass
-
-    resp = Response(stream_with_context(generate()), status=r.status_code)
-    for k,v in r.headers.items():
-        if k.lower() in ['content-type','content-length','accept-ranges','content-range']:
-            resp.headers[k]=v
-    return resp
-
+    target = (request.args.get('url') or '').strip()
+    if not strict_http_url(target):
+        return 'Gecersiz URL', 400
 
     headers = {
         'User-Agent': request.headers.get('User-Agent', session.headers.get('User-Agent')),
@@ -360,40 +338,62 @@ def proxy():
         'Accept-Encoding': 'identity',
         'Connection': 'close',
     }
+
     if request.headers.get('Range'):
         headers['Range'] = request.headers.get('Range')
 
     try:
-        upstream = session.get(target, stream=True, timeout=(10, 180), headers=headers, allow_redirects=True)
+        upstream = session.get(
+            target,
+            stream=True,
+            timeout=(10, 180),
+            headers=headers,
+            allow_redirects=True
+        )
     except requests.RequestException as e:
         return f'Upstream hatasi: {e}', 502
 
     content_type = upstream.headers.get('Content-Type', '')
     path = urlparse(target).path.lower()
-    is_m3u8 = '.m3u8' in path or 'application/vnd.apple.mpegurl' in content_type or 'application/x-mpegurl' in content_type
+    is_m3u8 = (
+        '.m3u8' in path
+        or 'application/vnd.apple.mpegurl' in content_type
+        or 'application/x-mpegurl' in content_type
+    )
+
     if is_m3u8:
         try:
-            text = upstream.text
-            rewritten = rewrite_m3u8(text, upstream.url)
+            body = upstream.text
+            rewritten = rewrite_m3u8(body, upstream.url)
             upstream.close()
-            return Response(rewritten, status=200, mimetype='application/vnd.apple.mpegurl', headers={'Cache-Control': 'no-store'})
+            return Response(
+                rewritten,
+                status=200,
+                mimetype='application/vnd.apple.mpegurl',
+                headers={'Cache-Control': 'no-store'}
+            )
         except Exception as e:
             upstream.close()
             return f'Playlist hatasi: {e}', 502
 
-    # Avoid forwarding possibly incorrect Content-Length for long/unstable IPTV files.
-    passthrough = ['Content-Type', 'Content-Range', 'Accept-Ranges', 'Cache-Control', 'ETag', 'Last-Modified']
+    passthrough = [
+        'Content-Type',
+        'Content-Range',
+        'Accept-Ranges',
+        'Cache-Control',
+        'ETag',
+        'Last-Modified'
+    ]
     response_headers = {h: upstream.headers[h] for h in passthrough if h in upstream.headers}
     response_headers['Cache-Control'] = 'no-store'
 
     def generate():
         try:
-            for chunk in upstream.iter_content(chunk_size=64 * 1024):
+            for chunk in upstream.iter_content(chunk_size=256 * 1024):
                 if chunk:
                     yield chunk
         except (ChunkedEncodingError, RequestsConnectionError, OSError) as e:
             print('PROXY STREAM WARNING', target, e)
-            # End response gracefully; browser/player will usually reconnect with a new range request.
             return
         finally:
             try:
@@ -401,10 +401,14 @@ def proxy():
             except Exception:
                 pass
 
-    return Response(stream_with_context(generate()), status=upstream.status_code, headers=response_headers)
+    return Response(
+        stream_with_context(generate()),
+        status=upstream.status_code,
+        headers=response_headers
+    )
+
 
 @app.route('/cache/clear')
-
 def clear_cache():
     cache.clear()
     return jsonify({'ok': True, 'cache_items': cache.size()})
@@ -443,3 +447,4 @@ def health():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5001, threaded=True, debug=False)
+        
