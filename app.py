@@ -326,11 +326,33 @@ def rewrite_m3u8(body: str, source_url: str) -> str:
     return '\n'.join(lines)
 
 
+
 @app.route('/proxy')
 def proxy():
-    target = (request.args.get('url') or '').strip()
-    if not strict_http_url(target):
-        return 'Gecersiz URL', 400
+    import requests
+    from flask import Response, request, stream_with_context
+
+    url = request.args.get('url')
+    headers = {}
+    if 'Range' in request.headers:
+        headers['Range'] = request.headers['Range']
+
+    r = requests.get(url, headers=headers, stream=True, timeout=30)
+
+    def generate():
+        try:
+            for chunk in r.iter_content(chunk_size=512*1024):
+                if chunk:
+                    yield chunk
+        except Exception:
+            pass
+
+    resp = Response(stream_with_context(generate()), status=r.status_code)
+    for k,v in r.headers.items():
+        if k.lower() in ['content-type','content-length','accept-ranges','content-range']:
+            resp.headers[k]=v
+    return resp
+
 
     headers = {
         'User-Agent': request.headers.get('User-Agent', session.headers.get('User-Agent')),
