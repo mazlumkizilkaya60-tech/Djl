@@ -1,13 +1,8 @@
-
 {% extends 'base.html' %}
-{% block title %}FIRATFLIX GALAXY{% endblock %}
+{% block title %}FIRATFLIX{% endblock %}
 {% block body %}
-
 <div class="topbar topbar--landing">
-  <div class="topbar__left">
-    <div class="logo selector" data-href="/">FIRATFLIX</div>
-    <div class="topbar__section">GALAXY ENGINE</div>
-  </div>
+  <div class="logo selector" data-href="/">FIRATFLIX</div>
   <div class="topbar__actions">
     <button class="icon-btn selector" data-open-search>ARA</button>
     <button class="icon-btn selector" data-href="/browse?m=movies">FİLMLER</button>
@@ -16,53 +11,22 @@
   </div>
 </div>
 
-<section class="hero galaxy-hero" id="hero" style="background-image:url('{{ hero_items[0].img if hero_items else '' }}')">
+<section class="hero" id="hero" style="background-image:url('{{ hero_items[0].img if hero_items else '' }}')">
   <div class="hero__shade"></div>
   <div class="hero__content">
-    <div class="hero__eyebrow">FIRATFLIX GALAXY EXPERIENCE</div>
+    <div class="hero__eyebrow">FIRATFLIX ORIGINAL EXPERIENCE</div>
     <h1 class="hero__title" id="heroTitle">{{ hero_items[0].title if hero_items else 'FIRATFLIX' }}</h1>
-    <p class="hero__desc" id="heroDesc">{{ hero_items[0].desc if hero_items else 'Film, dizi ve canlı yayınları tek ekranda keşfet.' }}</p>
-    <div class="hero__meta" id="heroMeta">
-      {% if hero_items and hero_items[0].year %}<span>{{ hero_items[0].year }}</span>{% endif %}
-      {% if hero_items and hero_items[0].genre %}<span>{{ hero_items[0].genre }}</span>{% endif %}
-      {% if hero_items and hero_items[0].rating %}<span>⭐ {{ hero_items[0].rating }}</span>{% endif %}
-    </div>
+    <p class="hero__desc" id="heroDesc">{{ hero_items[0].desc if hero_items else 'Vod, dizi, canlı tv ve tek player deneyimi.' }}</p>
     <div class="hero__buttons">
-      {% if hero_items %}
-      <button class="hero-btn hero-btn--primary selector" id="heroPlay"
-        data-action="play"
-        data-mode="{{ hero_items[0].mode }}"
-        data-id="{{ hero_items[0].id }}"
-        data-title="{{ hero_items[0].title }}"
-        data-url="{{ hero_items[0].url }}"
-        data-desc="{{ hero_items[0].desc|e }}"
-        data-img="{{ hero_items[0].img }}"
-        data-year="{{ hero_items[0].year }}"
-        data-genre="{{ hero_items[0].genre }}"
-        data-rating="{{ hero_items[0].rating }}">İZLE</button>
-      <button class="hero-btn selector" id="heroInfo"
-        data-mode="{{ hero_items[0].mode }}"
-        data-id="{{ hero_items[0].id }}"
-        data-title="{{ hero_items[0].title }}"
-        data-url="{{ hero_items[0].url }}"
-        data-desc="{{ hero_items[0].desc|e }}"
-        data-img="{{ hero_items[0].img }}"
-        data-year="{{ hero_items[0].year }}"
-        data-genre="{{ hero_items[0].genre }}"
-        data-rating="{{ hero_items[0].rating }}">BİLGİ</button>
-      {% endif %}
+      <button class="hero-btn hero-btn--primary selector" id="heroPlay">İZLE</button>
+      <button class="hero-btn selector" id="heroInfo">BİLGİ</button>
     </div>
   </div>
 </section>
 
 <main class="landing-content">
-  <section class="rail" id="nexusContinueRail" hidden>
-    <div class="rail__head"><h2>İzlemeye Devam Et</h2><a class="selector rail__more" href="/browse?m=series">Tümü</a></div>
-    <div class="rail__body card-rail"></div>
-  </section>
-
   <section class="rail">
-    <div class="rail__head"><h2>Yeni Filmler</h2><a class="selector rail__more" href="/browse?m=movies">Tümü</a></div>
+    <div class="rail__head"><h2>Yeni Eklenen Filmler</h2><a class="selector rail__more" href="/browse?m=movies">Tümü</a></div>
     <div class="rail__body card-rail">
       {% for item in latest_movies %}
       <article class="poster-card selector" tabindex="0"
@@ -72,15 +36,9 @@
         data-title="{{ item.title }}"
         data-url="{{ item.url }}"
         data-desc="{{ item.desc|e }}"
-        data-img="{{ item.img }}"
-        data-year="{{ item.year }}"
-        data-genre="{{ item.genre }}"
-        data-rating="{{ item.rating }}">
-        <img data-src="{{ item.img }}" alt="{{ item.title }}" loading="lazy">
-        <div class="poster-card__meta">
-          <div class="poster-card__title">{{ item.title }}</div>
-          <div class="poster-card__sub">{{ item.year or item.genre }}</div>
-        </div>
+        data-img="{{ item.img }}">
+        <img src="{{ item.img }}" alt="{{ item.title }}" loading="lazy">
+        <div class="poster-card__meta"><div class="poster-card__title">{{ item.title }}</div><div class="poster-card__sub">{{ item.year }}</div></div>
       </article>
       {% endfor %}
     </div>
@@ -97,15 +55,9 @@
         data-title="{{ item.title }}"
         data-url="{{ item.url }}"
         data-desc="{{ item.desc|e }}"
-        data-img="{{ item.img }}"
-        data-year="{{ item.year }}"
-        data-genre="{{ item.genre }}"
-        data-rating="{{ item.rating }}">
-        <img data-src="{{ item.img }}" alt="{{ item.title }}" loading="lazy">
-        <div class="poster-card__meta">
-          <div class="poster-card__title">{{ item.title }}</div>
-          <div class="poster-card__sub">{{ item.year or item.genre }}</div>
-        </div>
+        data-img="{{ item.img }}">
+        <img src="{{ item.img }}" alt="{{ item.title }}" loading="lazy">
+        <div class="poster-card__meta"><div class="poster-card__title">{{ item.title }}</div><div class="poster-card__sub">{{ item.year }}</div></div>
       </article>
       {% endfor %}
     </div>
@@ -122,25 +74,19 @@
         data-title="{{ item.title }}"
         data-url="{{ item.url }}"
         data-desc="{{ item.desc|e }}"
-        data-img="{{ item.img }}"
-        data-year="{{ item.year }}"
-        data-genre="{{ item.genre }}"
-        data-rating="{{ item.rating }}">
-        <img data-src="{{ item.img }}" alt="{{ item.title }}" loading="lazy">
-        <div class="poster-card__meta">
-          <div class="poster-card__title">{{ item.title }}</div>
-          <div class="poster-card__sub">{{ item.year or item.genre }}</div>
-        </div>
+        data-img="{{ item.img }}">
+        <img src="{{ item.img }}" alt="{{ item.title }}" loading="lazy">
+        <div class="poster-card__meta"><div class="poster-card__title">{{ item.title }}</div><div class="poster-card__sub">{{ item.year }}</div></div>
       </article>
       {% endfor %}
     </div>
   </section>
 
   <section class="rail">
-    <div class="rail__head"><h2>Canlı TV Grid</h2><a class="selector rail__more" href="/browse?m=live">Tümü</a></div>
-    <div class="live-grid">
+    <div class="rail__head"><h2>Canlı TV</h2><a class="selector rail__more" href="/browse?m=live">Tümü</a></div>
+    <div class="rail__body card-rail card-rail--channels">
       {% for item in live_channels %}
-      <article class="channel-grid-card selector" tabindex="0"
+      <article class="channel-card selector" tabindex="0"
         data-action="play"
         data-mode="{{ item.mode }}"
         data-id="{{ item.id }}"
@@ -148,11 +94,8 @@
         data-url="{{ item.url }}"
         data-desc="{{ item.desc|e }}"
         data-img="{{ item.img }}">
-        <img data-src="{{ item.img }}" alt="{{ item.title }}" loading="lazy">
-        <div class="channel-grid-card__body">
-          <div class="channel-grid-card__title">{{ item.title }}</div>
-          <div class="channel-grid-card__epg" data-channel-id="{{ item.id }}">NOW / NEXT yükleniyor</div>
-        </div>
+        <img src="{{ item.img }}" alt="{{ item.title }}" loading="lazy">
+        <div class="channel-card__title">{{ item.title }}</div>
       </article>
       {% endfor %}
     </div>
@@ -193,5 +136,4 @@
 window.heroItems = {{ hero_items|tojson }};
 window.pageMode = 'landing';
 </script>
-<script src="{{ url_for('static', filename='js/galaxy_home.js') }}"></script>
 {% endblock %}

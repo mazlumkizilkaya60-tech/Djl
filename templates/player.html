@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <title>{{ title or 'Player' }}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-  <link rel="icon" href="{{ url_for('favicon') }}">
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 </head>
 <body class="player-page">
@@ -41,7 +40,6 @@
           <button class="player-btn player-btn--primary selector" id="playPause">PLAY</button>
           <button class="player-btn selector" id="seekForward">+10s</button>
           <button class="player-btn selector" id="muteBtn">MUTE</button>
-          <button class="player-btn selector" id="nextEpisodeBtn" {% if not next_episode_url %}hidden{% endif %}>SONRAKİ</button>
         </div>
         <div class="player-actions__right">
           <button class="player-btn selector" id="pipBtn">PIP</button>
@@ -61,7 +59,6 @@
       <p id="playerErrorText">Kaynak açılamadı.</p>
       <div class="modal__buttons">
         <button class="hero-btn hero-btn--primary selector" id="retryBtn">TEKRAR DENE</button>
-        <button class="hero-btn selector" id="reconnectBtn">YENİDEN BAĞLAN</button>
         <button class="hero-btn selector" id="copyUrlBtn">URL KOPYALA</button>
       </div>
     </div>
@@ -74,17 +71,13 @@
       playbackUrl: {{ playback_url|tojson }},
       itemId: {{ item_id|tojson }},
       mode: {{ mode|tojson }},
-      seriesId: {{ series_id|tojson }},
-      nextEpisodeUrl: {{ next_episode_url|tojson }}
+      seriesId: {{ series_id|tojson }}
     };
   </script>
 
   <script src="{{ url_for('static', filename='js/spatial-navigation.js') }}"></script>
   <script src="{{ url_for('static', filename='js/remote.js') }}"></script>
   <script src="{{ url_for('static', filename='js/player.js') }}"></script>
-<script src="{{ url_for('static', filename='js/nexus_retry.js') }}"></script>
-  <script src="{{ url_for('static', filename='js/ultra_player.js') }}"></script>
-  <script src="{{ url_for('static', filename='js/continue.js') }}"></script>
 
 </body>
 </html>
