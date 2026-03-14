@@ -5,7 +5,49 @@ from urllib.parse import quote, urlparse
 from flask import Flask, render_template, request, jsonify, Response, stream_with_context, redirect
 
 app = Flask(__name__)
+from flask import request, Response, stream_with_context
+import requests
 
+@app.route('/proxy-test')
+def proxy_test():
+    return 'proxy ok', 200
+
+@app.route('/proxy')
+def proxy():
+    url = (request.args.get('url') or '').strip()
+    if not url:
+        return 'url missing', 400
+
+    headers = {
+        'User-Agent': request.headers.get('User-Agent', 'Mozilla/5.0'),
+        'Accept': '*/*',
+        'Accept-Encoding': 'identity',
+        'Connection': 'close',
+    }
+
+    if request.headers.get('Range'):
+        headers['Range'] = request.headers.get('Range')
+
+    try:
+        r = requests.get(url, headers=headers, stream=True, timeout=30)
+    except Exception as e:
+        return f'proxy error: {e}', 502
+
+    def generate():
+        try:
+            for chunk in r.iter_content(chunk_size=256 * 1024):
+                if chunk:
+                    yield chunk
+        except Exception:
+            return
+
+    resp = Response(stream_with_context(generate()), status=r.status_code)
+
+    for key, value in r.headers.items():
+        if key.lower() in ['content-type', 'content-length', 'accept-ranges', 'content-range']:
+            resp.headers[key] = value
+
+    return resp
 # IPTV configuration
 BASE_URL = os.getenv('IPTV_BASE_URL', 'http://xbluex5k.xyz:8080').rstrip('/')
 USER = os.getenv('IPTV_USER', 'asan8442')
